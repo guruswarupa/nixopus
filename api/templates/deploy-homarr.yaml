@@ -1,0 +1,112 @@
+metadata:
+  id: "deploy-homarr"
+  name: "Homarr"
+  description: "Homarr is a sleek, modern dashboard that puts all your services at your fingertips. It provides a beautiful and customizable homepage for your server, allowing you to organize and access all your self-hosted services from one place."
+  author: "Nixopus Team"
+  icon: "🏠"
+  category: "Containers"
+  type: "install"
+  version: "1.0.0"
+  isVerified: false
+
+variables:
+  image:
+    type: "string"
+    description: "Docker image for Homarr"
+    default: "ghcr.io/homarr-labs/homarr"
+    is_required: true
+
+  tag:
+    type: "string"
+    description: "Docker image tag"
+    default: "latest"
+    is_required: true
+
+  container_name:
+    type: "string"
+    description: "Name of the Homarr container"
+    default: "homarr"
+    is_required: true
+
+  host_port:
+    type: "integer"
+    description: "Host port to expose Homarr web interface"
+    default: 7575
+    is_required: true
+
+  container_port:
+    type: "integer"
+    description: "Container port for Homarr web interface"
+    default: 7575
+    is_required: true
+  docker_sock_path:
+    type: "string"
+    description: "Path to the Docker socket on the host"
+    default: "/var/run/docker.sock"
+    is_required: true
+
+  appdata_path:
+    type: "string"
+    description: "Host path for Homarr appdata (persists configuration and state)"
+    default: "/opt/appdata/homarr"
+    is_required: true
+
+  secret_encryption_key:
+    type: "string"
+    description: "64-character hex string used to encrypt secrets in Homarr (generate securely, e.g. with openssl rand -hex 32)"
+    default: null
+    is_required: true
+
+  proxy_domain:
+    type: "string"
+    description: "Domain name for Homarr (optional)"
+    default: ""
+    is_required: false
+
+execution:
+  run:
+    - name: "Remove existing Homarr container if present"
+      type: "command"
+      properties:
+        cmd: "docker rm -f {{ container_name }} >/dev/null 2>&1 || true"
+      timeout: 30
+
+    - name: "Pull Homarr image"
+      type: "docker"
+      properties:
+        action: "pull"
+        image: "{{ image }}"
+        tag: "{{ tag }}"
+      timeout: 300
+
+    - name: "Run Homarr container"
+      type: "docker"
+      properties:
+        action: "run"
+        name: "{{ container_name }}"
+        image: "{{ image }}"
+        tag: "{{ tag }}"
+        ports: "{{ host_port }}:{{ container_port }}"
+        volumes:
+          - "{{ docker_sock_path }}:/var/run/docker.sock"
+          - "{{ appdata_path }}:/appdata"
+        env:
+          SECRET_ENCRYPTION_KEY: "{{ secret_encryption_key }}"
+        restart: "unless-stopped"
+      timeout: 120
+
+    - name: "Add proxy for Homarr"
+      type: "proxy"
+      condition: "{{ proxy_domain != '' }}"
+      properties:
+        action: "add"
+        domain: "{{ proxy_domain }}"
+        port: "{{ host_port }}"
+      timeout: 30
+
+  validate:
+    - name: "Check HTTP response from Homarr"
+      type: "command"
+      properties:
+        cmd: "sh -c 'for i in $(seq 1 30); do code=$(curl -fsS -o /dev/null -w \"%{http_code}\\n\" http://localhost:{{ host_port }} || true); echo \"HTTP $code\"; echo $code | grep -E \"^(200|301|302)$\" && exit 0; sleep 2; done; exit 1'"
+      timeout: 60
