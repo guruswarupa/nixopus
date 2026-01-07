@@ -69,6 +69,8 @@ interface EnvVariableRowProps {
   onRemove: () => void;
 }
 
+const INPUT_TRUNCATE = 'min-w-0 overflow-hidden text-ellipsis whitespace-nowrap';
+
 const EnvVariableRow = ({
   variable,
   isEditing,
@@ -93,16 +95,19 @@ const EnvVariableRow = ({
         <Input
           value={editKey}
           onChange={(e) => onUpdateEditKey(e.target.value)}
-          className="h-8 font-mono text-sm flex-1 max-w-[140px]"
           placeholder={t('selfHost.envEditor.keyPlaceholder')}
+          className={cn('h-8 font-mono text-sm flex-1 max-w-[140px]', INPUT_TRUNCATE)}
         />
+
         <span className="text-muted-foreground">=</span>
+
         <Input
           value={editValue}
           onChange={(e) => onUpdateEditValue(e.target.value)}
-          className="h-8 font-mono text-sm flex-1"
           placeholder={t('selfHost.envEditor.valuePlaceholder')}
+          className={cn('h-8 font-mono text-sm flex-1', INPUT_TRUNCATE)}
         />
+
         <Button
           type="button"
           variant="ghost"
@@ -112,6 +117,7 @@ const EnvVariableRow = ({
         >
           <Check size={16} />
         </Button>
+
         <Button
           type="button"
           variant="ghost"
@@ -129,20 +135,25 @@ const EnvVariableRow = ({
     <>
       <div className="flex items-center gap-2 min-w-0 flex-1">
         {variable.isSecret && <Lock size={14} className="text-amber-500 flex-shrink-0" />}
+
         <span className="font-mono text-sm font-medium truncate max-w-[120px] sm:max-w-[160px]">
           {variable.key}
         </span>
+
         <span className="text-muted-foreground">=</span>
+
         <span
           className={cn(
-            'font-mono text-sm text-muted-foreground truncate flex-1 min-w-0',
+            `
+            font-mono text-sm text-muted-foreground
+            truncate min-w-0
+            max-w-[100px]
+            sm:max-w-[200px]
+            lg:max-w-[600px]
+            `,
             variable.isSecret && !isRevealed && 'select-none'
           )}
-          title={
-            variable.isSecret && !isRevealed
-              ? t('selfHost.envEditor.clickToReveal')
-              : variable.value
-          }
+          title={variable.isSecret && !isRevealed ? undefined : variable.value}
         >
           {variable.isSecret && !isRevealed ? maskValue(variable.value) : variable.value}
         </span>
@@ -347,54 +358,59 @@ export const EnvVariablesEditor = ({
             <div className="space-y-3">
               {variables.length > 0 && (
                 <div className="rounded-lg border bg-card">
-                  <ScrollArea className={cn(variables.length > 5 && 'h-[280px]')}>
-                    <div className="divide-y">
-                      {variables.map((variable, index) => (
-                        <div
-                          key={`${variable.key}-${index}`}
-                          className="group flex items-center gap-2 px-3 py-2.5 hover:bg-muted/50 transition-colors"
-                        >
-                          <EnvVariableRow
-                            variable={variable}
-                            isEditing={editingIndex === index}
-                            editKey={editKey}
-                            editValue={editValue}
-                            isRevealed={revealedIndices.has(index)}
-                            maskValue={maskValue}
-                            onUpdateEditKey={updateEditKey}
-                            onUpdateEditValue={updateEditValue}
-                            onSaveEdit={saveEdit}
-                            onCancelEdit={cancelEdit}
-                            onToggleReveal={() => toggleReveal(index)}
-                            onToggleSecret={() => toggleSecret(index)}
-                            onStartEditing={() => startEditing(index)}
-                            onRemove={() => removeVariable(index)}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
+                  <div className="divide-y max-h-[600px] overflow-y-auto">
+                    {variables.map((variable, index) => (
+                      <div
+                        key={`${variable.key}-${index}`}
+                        className="group flex items-center gap-2 px-3 py-2.5 hover:bg-muted/50 transition-colors min-w-0"
+                      >
+                        <EnvVariableRow
+                          variable={variable}
+                          isEditing={editingIndex === index}
+                          editKey={editKey}
+                          editValue={editValue}
+                          isRevealed={revealedIndices.has(index)}
+                          maskValue={maskValue}
+                          onUpdateEditKey={updateEditKey}
+                          onUpdateEditValue={updateEditValue}
+                          onSaveEdit={saveEdit}
+                          onCancelEdit={cancelEdit}
+                          onToggleReveal={() => toggleReveal(index)}
+                          onToggleSecret={() => toggleSecret(index)}
+                          onStartEditing={() => startEditing(index)}
+                          onRemove={() => removeVariable(index)}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 min-w-0">
                 <Input
                   value={newKey}
                   onChange={(e) => updateNewKey(e.target.value)}
                   onKeyDown={handleKeyDown}
                   onPaste={handlePaste}
                   placeholder={t('selfHost.envEditor.keyPlaceholder')}
-                  className={cn('font-mono flex-1 max-w-[160px]', error && 'border-destructive')}
+                  className={cn(
+                    'font-mono flex-1 max-w-[160px]',
+                    INPUT_TRUNCATE,
+                    error && 'border-destructive'
+                  )}
                 />
+
                 <span className="flex items-center text-muted-foreground">=</span>
+
                 <Input
                   value={newValue}
                   onChange={(e) => updateNewValue(e.target.value)}
                   onKeyDown={handleKeyDown}
                   onPaste={handlePaste}
                   placeholder={t('selfHost.envEditor.valuePlaceholder')}
-                  className={cn('font-mono flex-1', error && 'border-destructive')}
+                  className={cn('font-mono flex-1', INPUT_TRUNCATE, error && 'border-destructive')}
                 />
+
                 <Button
                   type="button"
                   variant="outline"

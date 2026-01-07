@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, KeyboardEvent, ClipboardEvent } from 'react';
+import { useState, useEffect, useCallback, useRef, KeyboardEvent, ClipboardEvent } from 'react';
 import { parseEnvText, isMultiLineEnvPaste } from '@/lib/parse-env';
 import { useTranslation } from '@/hooks/use-translation';
 
@@ -48,15 +48,22 @@ export function useEnvVariablesEditor({
   const [revealedIndices, setRevealedIndices] = useState<Set<number>>(new Set());
   const [pastePreviewOpen, setPastePreviewOpen] = useState(false);
   const [pastePreviewItems, setPastePreviewItems] = useState<PastePreviewItem[]>([]);
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    if (defaultValues && Object.keys(defaultValues).length > 0) {
+    if (!hasInitialized.current && defaultValues && Object.keys(defaultValues).length > 0) {
       const vars = Object.entries(defaultValues).map(([key, value]) => ({
         key,
         value,
         isSecret: false
       }));
       setVariables(vars);
+      hasInitialized.current = true;
+    } else if (
+      !hasInitialized.current &&
+      (!defaultValues || Object.keys(defaultValues).length === 0)
+    ) {
+      hasInitialized.current = true;
     }
   }, [defaultValues]);
 
