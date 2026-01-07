@@ -19,39 +19,41 @@ const normalizeDefault = (value: unknown, type: string): unknown => {
   }
   if (type === 'array') {
     if (Array.isArray(value)) return value;
-    const s = typeof value === 'string' ? value : String(value);
+    const s = String(value);
     return s
-      .split(/[\,\n]/)
+      .split(/[,\n]/)
       .map((x) => x.trim())
       .filter((x) => x.length > 0);
   }
-  if (typeof value === 'string') {
-    let s = value.trim();
-    for (let i = 0; i < 3; i++) {
-      try {
-        const parsed = JSON.parse(s);
-        if (typeof parsed === 'string') {
-          s = String(parsed).trim();
-          continue;
-        }
-      } catch {}
-      break;
-    }
-    if (s === '""' || s === "''") return '';
-    const isQuote = (c: string) => c === '"' || c === "'";
-    while (s.length >= 2 && isQuote(s[0]) && isQuote(s[s.length - 1])) {
-      s = s.slice(1, -1).trim();
-    }
-    return s;
-  }
-  return String(value);
+  return String(value).trim();
 };
 
-const buildInitialValues = (variables: ExtensionVariable[]) => {
+const generateDefaultDomain = (extensionName: string): string => {
+  if (!extensionName) return '';
+  const sanitized = extensionName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  return sanitized ? `app.${sanitized}.com` : '';
+};
+
+const buildInitialValues = (
+  variables: ExtensionVariable[],
+  extensionName?: string
+): Record<string, unknown> => {
   const acc: Record<string, unknown> = {};
+
   variables.forEach((v) => {
-    acc[v.variable_name] = normalizeDefault(v.default_value, v.variable_type);
+    let defaultValue = normalizeDefault(v.default_value, v.variable_type);
+
+    const isDomain = ['proxy_domain', 'domain'].includes(v.variable_name.toLowerCase());
+    if (isDomain && extensionName && (!defaultValue || String(defaultValue).trim() === '')) {
+      defaultValue = generateDefaultDomain(extensionName);
+    }
+
+    acc[v.variable_name] = defaultValue;
   });
+
   return acc;
 };
 
@@ -82,7 +84,10 @@ export function useExtensionInput(args: {
   const { extension, open, onSubmit, onClose } = args;
 
   const variables = useMemo(() => extension?.variables || [], [extension]);
-  const initialValues = useMemo(() => buildInitialValues(variables), [variables]);
+  const initialValues = useMemo(
+    () => buildInitialValues(variables, extension?.name),
+    [variables, extension?.name]
+  );
 
   const [values, setValues] = useState<Record<string, unknown>>(initialValues);
   const [errors, setErrors] = useState<Record<string, string>>({});

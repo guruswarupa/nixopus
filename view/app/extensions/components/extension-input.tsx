@@ -45,12 +45,6 @@ export default function ExtensionInput({
     }
   ];
 
-  // Check if it's just proxy_domain - show simplified view
-  const isOnlyProxyDomain =
-    requiredFields.length === 1 &&
-    (requiredFields[0].variable_name.toLowerCase() === 'proxy_domain' ||
-      requiredFields[0].variable_name.toLowerCase() === 'domain');
-
   const noFieldsToShow = requiredFields.length === 0;
 
   return (
@@ -65,7 +59,7 @@ export default function ExtensionInput({
       }
       description={extension?.description}
       actions={actions}
-      size={noFieldsToShow || isOnlyProxyDomain ? 'md' : 'lg'}
+      size={noFieldsToShow ? 'md' : 'lg'}
     >
       <div className="py-2">
         {noFieldsToShow && (
@@ -78,16 +72,7 @@ export default function ExtensionInput({
           </div>
         )}
 
-        {isOnlyProxyDomain && (
-          <ProxyDomainInput
-            variable={requiredFields[0]}
-            value={values[requiredFields[0].variable_name]}
-            error={errors[requiredFields[0].variable_name]}
-            onChange={handleChange}
-          />
-        )}
-
-        {!noFieldsToShow && !isOnlyProxyDomain && (
+        {!noFieldsToShow && (
           <div className="space-y-3">
             {requiredFields.map((v) => (
               <FieldItem
@@ -102,43 +87,6 @@ export default function ExtensionInput({
         )}
       </div>
     </DialogWrapper>
-  );
-}
-
-// Simplified input for the common proxy_domain case
-function ProxyDomainInput({
-  variable,
-  value,
-  error,
-  onChange
-}: {
-  variable: ExtensionVariable;
-  value: unknown;
-  error?: string;
-  onChange: (name: string, value: unknown) => void;
-}) {
-  const id = `var-${variable.variable_name}`;
-
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={id} className="text-sm font-medium flex items-center gap-2">
-        <Globe className="h-4 w-4 text-muted-foreground" />
-        Domain
-      </Label>
-      <Input
-        id={id}
-        type="text"
-        value={(value as string) ?? ''}
-        onChange={(e) => onChange(variable.variable_name, e.target.value)}
-        placeholder="app.example.com"
-        className={cn('h-10', error && 'border-destructive focus-visible:ring-destructive')}
-        autoFocus
-      />
-      {error && <p className="text-xs text-destructive">{error}</p>}
-      <p className="text-xs text-muted-foreground">
-        Enter the domain where this extension will be accessible
-      </p>
-    </div>
   );
 }
 
@@ -209,8 +157,13 @@ function FieldItem({
 
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={id} className="text-sm font-medium">
-        {displayName}
+      <Label htmlFor={id} className="text-sm font-medium flex items-center gap-2">
+        {(variable.variable_name === 'proxy_domain' || variable.variable_name === 'domain') && (
+          <Globe className="h-4 w-4 text-muted-foreground" />
+        )}
+        {variable.variable_name === 'proxy_domain' || variable.variable_name === 'domain'
+          ? 'Domain'
+          : displayName}
       </Label>
       <Input
         id={id}
