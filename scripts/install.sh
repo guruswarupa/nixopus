@@ -427,7 +427,11 @@ main() {
         else
             log_info "Running 'nixopus install' with options: ${cli_args[*]}"
         fi
-        nixopus install "${cli_args[@]}"
+        if [ $EUID -ne 0 ]; then
+            sudo nixopus install "${cli_args[@]}"
+        else
+            nixopus install "${cli_args[@]}"
+        fi
         log_success "nixopus install completed successfully!"
     else
         log_info "Skipping 'nixopus install' as requested..."
