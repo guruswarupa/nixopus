@@ -153,7 +153,7 @@ const EnvVariableRow = ({
             `,
             variable.isSecret && !isRevealed && 'select-none'
           )}
-          title={variable.value}
+          title={variable.isSecret && !isRevealed ? undefined : variable.value}
         >
           {variable.isSecret && !isRevealed ? maskValue(variable.value) : variable.value}
         </span>
