@@ -50,7 +50,7 @@ function useUpdateDeployment({
     name: z
       .string()
       .min(3, { message: t('selfHost.deployForm.validation.applicationName.minLength') })
-      .regex(/^[a-zA-Z0-9_-]+$/, {
+      .regex(/^[a-zA-Z0-9 _.-]+$/, {
         message: t('selfHost.deployForm.validation.applicationName.invalidFormat')
       })
       .optional(),

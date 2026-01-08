@@ -50,7 +50,7 @@ function useCreateDeployment({
     application_name: z
       .string()
       .min(3, { message: t('selfHost.deployForm.validation.applicationName.minLength') })
-      .regex(/^[a-zA-Z0-9_-]+$/, {
+      .regex(/^[a-zA-Z0-9 _.-]+$/, {
         message: t('selfHost.deployForm.validation.applicationName.invalidFormat')
       }),
     environment: z
@@ -74,7 +74,7 @@ function useCreateDeployment({
     repository: z
       .string()
       .min(3, { message: t('selfHost.deployForm.validation.repository.minLength') })
-      .regex(/^[a-zA-Z0-9_-]+$/, {
+      .regex(/^[a-zA-Z0-9 _-]+$/, {
         message: t('selfHost.deployForm.validation.repository.invalidFormat')
       }),
     build_pack: z
