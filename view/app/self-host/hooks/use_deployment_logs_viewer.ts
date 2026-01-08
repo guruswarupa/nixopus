@@ -392,15 +392,22 @@ function detectLogLevel(message: string): LogLevel {
 
 function formatTimestamp(timestamp: string): string {
   const date = new Date(timestamp);
-  return date.toLocaleString('en-US', {
-    month: 'short',
-    day: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
-  });
+
+  // Format date parts
+  const month = date.toLocaleString('en-US', { month: 'short' });
+  const day = date.toLocaleString('en-US', { day: '2-digit' });
+  const year = date.toLocaleString('en-US', { year: 'numeric' });
+
+  // Format time in 12-hour format with AM/PM
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const seconds = date.getSeconds();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12;
+
+  const timeStr = `${hours12.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} ${ampm}`;
+
+  return `${month} ${day}, ${year}, ${timeStr}`;
 }
 
 export default useDeploymentLogsViewer;

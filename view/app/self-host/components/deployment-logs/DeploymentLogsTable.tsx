@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Search,
   ChevronsUpDown,
@@ -21,6 +21,13 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 import {
   useDeploymentLogsViewer,
   LogFilters,
@@ -282,16 +289,185 @@ function DateFilter({
   value: string;
   onChange: (v: string) => void;
 }) {
-  // Convert datetime-local format (YYYY-MM-DDTHH:mm) to/from stored value
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e.target.value);
+  // Parse datetime-local format (YYYY-MM-DDTHH:mm) or date-only (YYYY-MM-DD) to separate date and 12-hour time components
+  const parseDateTime = (dateTimeStr: string) => {
+    if (!dateTimeStr) {
+      return { date: '', hour: null, minute: null, ampm: null };
+    }
+
+    if (!dateTimeStr.includes('T')) {
+      // Date only, no time
+      return { date: dateTimeStr, hour: null, minute: null, ampm: null };
+    }
+
+    const [datePart, timePart] = dateTimeStr.split('T');
+    const [hour24, minute] = timePart.split(':').map(Number);
+
+    const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+    const ampm = hour24 >= 12 ? 'PM' : 'AM';
+
+    return { date: datePart, hour: hour12, minute: minute || 0, ampm };
+  };
+
+  // Convert 12-hour format components to datetime-local format (YYYY-MM-DDTHH:mm) or date-only (YYYY-MM-DD)
+  const formatToDateTimeLocal = (
+    date: string,
+    hour12: number | null,
+    minute: number | null,
+    ampm: string | null
+  ): string => {
+    if (!date) return '';
+
+    // If time is not set, return date only
+    if (hour12 === null || minute === null || ampm === null) {
+      return date;
+    }
+
+    let hour24 = hour12;
+    if (ampm === 'PM' && hour12 !== 12) {
+      hour24 = hour12 + 12;
+    } else if (ampm === 'AM' && hour12 === 12) {
+      hour24 = 0;
+    }
+
+    const hour24Str = hour24.toString().padStart(2, '0');
+    const minuteStr = minute.toString().padStart(2, '0');
+
+    return `${date}T${hour24Str}:${minuteStr}`;
+  };
+
+  const { date, hour, minute, ampm } = parseDateTime(value);
+  const [minuteInput, setMinuteInput] = useState(
+    minute !== null ? minute.toString().padStart(2, '0') : ''
+  );
+
+  // Update minute input when value changes externally
+  useEffect(() => {
+    const parsed = parseDateTime(value);
+    setMinuteInput(parsed.minute !== null ? parsed.minute.toString().padStart(2, '0') : '');
+  }, [value]);
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
+    if (newDate) {
+      // If time is set, include it; otherwise just date
+      onChange(formatToDateTimeLocal(newDate, hour, minute, ampm));
+    } else {
+      onChange('');
+    }
+  };
+
+  const handleHourChange = (newHour: string | undefined) => {
+    if (!newHour || newHour === '') {
+      // Clear time when hour is cleared
+      onChange(date || '');
+      return;
+    }
+    const hourNum = parseInt(newHour);
+    if (isNaN(hourNum)) return;
+    // Ensure minute and ampm are set when hour is selected
+    const newMinute = minute !== null ? minute : 0;
+    const newAmPm = ampm || 'AM';
+    onChange(formatToDateTimeLocal(date, hourNum, newMinute, newAmPm));
+  };
+
+  const handleMinuteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    setMinuteInput(inputValue);
+
+    if (inputValue === '') {
+      // If minute is cleared but hour is set, keep hour with default minute
+      if (hour !== null && ampm !== null) {
+        onChange(formatToDateTimeLocal(date, hour, 0, ampm));
+      }
+      return;
+    }
+
+    const newMinute = parseInt(inputValue);
+    if (!isNaN(newMinute) && hour !== null && ampm !== null) {
+      const clampedMinute = Math.max(0, Math.min(59, newMinute));
+      onChange(formatToDateTimeLocal(date, hour, clampedMinute, ampm));
+    }
+  };
+
+  const handleMinuteBlur = () => {
+    if (minuteInput === '') {
+      // If minute is empty but hour is set, default to 0
+      if (hour !== null && ampm !== null) {
+        setMinuteInput('00');
+        onChange(formatToDateTimeLocal(date, hour, 0, ampm));
+      } else {
+        setMinuteInput('');
+      }
+      return;
+    }
+
+    const parsedMinute = parseInt(minuteInput);
+    if (isNaN(parsedMinute) || parsedMinute < 0 || parsedMinute > 59) {
+      const parsed = parseDateTime(value);
+      setMinuteInput(parsed.minute !== null ? parsed.minute.toString().padStart(2, '0') : '');
+    } else {
+      setMinuteInput(parsedMinute.toString().padStart(2, '0'));
+    }
+  };
+
+  const handleAmPmChange = (newAmPm: string | undefined) => {
+    if (!newAmPm || newAmPm === '') {
+      // Clear time when AM/PM is cleared
+      onChange(date || '');
+      return;
+    }
+    if (hour !== null) {
+      const newMinute = minute !== null ? minute : 0;
+      onChange(formatToDateTimeLocal(date, hour, newMinute, newAmPm));
+    }
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <Calendar className="h-4 w-4 text-muted-foreground" />
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <Input type="datetime-local" value={value} onChange={handleChange} className="w-48 h-9" />
+    <div className="flex items-center gap-2 flex-wrap">
+      <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+      <span className="text-sm text-muted-foreground flex-shrink-0">{label}</span>
+      <div className="flex items-center gap-1.5">
+        <Input type="date" value={date} onChange={handleDateChange} className="w-32 h-9" />
+        <div className="flex items-center gap-1">
+          <Select
+            value={hour !== null ? hour.toString() : undefined}
+            onValueChange={(v) => handleHourChange(v)}
+          >
+            <SelectTrigger className="w-20 h-9">
+              <SelectValue placeholder="Hour" />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                <SelectItem key={h} value={h.toString()}>
+                  {h.toString().padStart(2, '0')}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-muted-foreground">:</span>
+          <Input
+            type="number"
+            min="0"
+            max="59"
+            value={minuteInput}
+            onChange={handleMinuteChange}
+            onBlur={handleMinuteBlur}
+            className="w-14 h-9 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            placeholder="00"
+            disabled={hour === null}
+          />
+          <Select value={ampm || undefined} onValueChange={handleAmPmChange}>
+            <SelectTrigger className="w-20 h-9">
+              <SelectValue placeholder="AM/PM" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="AM">AM</SelectItem>
+              <SelectItem value="PM">PM</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
     </div>
   );
 }
