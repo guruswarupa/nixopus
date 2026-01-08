@@ -124,12 +124,13 @@ export function useDeploymentLogsViewer({
   }, []);
 
   const refreshLogs = useCallback(async () => {
-    setAllLogs([]);
     setCurrentPage(1);
-    if (isDeployment) {
-      await refetchDeploymentLogs();
-    } else {
-      await refetchApplicationLogs();
+    setAllLogs([]);
+    const result = isDeployment ? await refetchDeploymentLogs() : await refetchApplicationLogs();
+
+    // Ensure logs are synced from the response
+    if (result.data?.logs) {
+      syncLogsFromResponse(result.data.logs, 1, setAllLogs);
     }
   }, [isDeployment, refetchDeploymentLogs, refetchApplicationLogs]);
 
