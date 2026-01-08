@@ -34,11 +34,12 @@ import { useTranslation } from '@/hooks/use-translation';
 
 interface DuplicateProjectDialogProps {
   application: Application;
+  trigger?: React.ReactNode;
 }
 
 const ENVIRONMENTS: Environment[] = ['development', 'staging', 'production'];
 
-export function DuplicateProjectDialog({ application }: DuplicateProjectDialogProps) {
+export function DuplicateProjectDialog({ application, trigger }: DuplicateProjectDialogProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -129,29 +130,46 @@ export function DuplicateProjectDialog({ application }: DuplicateProjectDialogPr
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      {isDisabled ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div>
-              <DropdownMenuItem disabled className="gap-2">
-                <Copy className="h-4 w-4" />
-                {t('selfHost.applicationDetails.header.duplicate.button')}
-              </DropdownMenuItem>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            All available environments have been created. Environment creation limit reached.
-          </TooltipContent>
-        </Tooltip>
-      ) : (
-        <DialogTrigger asChild>
-          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2">
+  const defaultTrigger = isDisabled ? (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div>
+          <DropdownMenuItem disabled className="gap-2">
             <Copy className="h-4 w-4" />
             {t('selfHost.applicationDetails.header.duplicate.button')}
           </DropdownMenuItem>
-        </DialogTrigger>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>
+        All available environments have been created. Environment creation limit reached.
+      </TooltipContent>
+    </Tooltip>
+  ) : (
+    <DialogTrigger asChild>
+      <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2">
+        <Copy className="h-4 w-4" />
+        {t('selfHost.applicationDetails.header.duplicate.button')}
+      </DropdownMenuItem>
+    </DialogTrigger>
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      {trigger ? (
+        isDisabled ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>{trigger}</div>
+            </TooltipTrigger>
+            <TooltipContent>
+              All available environments have been created. Environment creation limit reached.
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <DialogTrigger asChild>{trigger}</DialogTrigger>
+        )
+      ) : (
+        defaultTrigger
       )}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

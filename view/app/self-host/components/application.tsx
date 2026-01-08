@@ -1,12 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { ExternalLink, GitBranch, Package } from 'lucide-react';
+import { ExternalLink, GitBranch, Package, Trash2, Copy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Application } from '@/redux/types/applications';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { DeleteDialog } from '@/components/ui/delete-dialog';
+import { DuplicateProjectDialog } from './application-details/duplicate-project-dialog';
+import { useDeleteApplicationMutation } from '@/redux/services/deploy/applicationsApi';
+import { toast } from 'sonner';
+import { useTranslation } from '@/hooks/use-translation';
+import { AnyPermissionGuard } from '@/components/rbac/PermissionGuard';
 
 function AppItem({
   name,
@@ -18,9 +25,13 @@ function AppItem({
   id,
   status,
   deployments,
-  labels
+  labels,
+  ...rest
 }: Application) {
   const router = useRouter();
+  const { t } = useTranslation();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteApplication, { isLoading: isDeleting }] = useDeleteApplicationMutation();
 
   const latestDeployment = deployments?.[0];
   const currentStatus = latestDeployment?.status?.status || status?.status;
@@ -69,6 +80,29 @@ function AppItem({
 
   const timeAgo = updated_at ? formatDistanceToNow(new Date(updated_at), { addSuffix: true }) : '';
 
+  const handleDelete = async () => {
+    try {
+      await deleteApplication({ id }).unwrap();
+      toast.success(t('selfHost.applicationDetails.header.actions.delete.success'));
+    } catch (error) {
+      toast.error(t('selfHost.applicationDetails.header.actions.delete.error'));
+    }
+  };
+
+  const application: Application = {
+    name,
+    domain,
+    environment,
+    updated_at,
+    build_pack,
+    branch,
+    id,
+    status,
+    deployments,
+    labels,
+    ...rest
+  };
+
   return (
     <Card
       className="relative w-full cursor-pointer overflow-hidden transition-all duration-200 hover:shadow-lg hover:border-primary/30 group"
@@ -96,18 +130,72 @@ function AppItem({
               <h3 className="font-semibold text-base tracking-tight truncate group-hover:text-primary transition-colors">
                 {name}
               </h3>
-              {domain && (
-                <a
-                  href={`https://${domain}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                  title={`Open ${domain}`}
+              <div className="flex items-center gap-1">
+                {/* Action buttons - visible on hover */}
+                <div
+                  className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              )}
+                  <AnyPermissionGuard permissions={['deploy:create']} loadingFallback={null}>
+                    <DuplicateProjectDialog
+                      application={application}
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
+                  </AnyPermissionGuard>
+                  <AnyPermissionGuard permissions={['deploy:delete']} loadingFallback={null}>
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <DeleteDialog
+                        title={t(
+                          'selfHost.applicationDetails.header.actions.delete.dialog.title'
+                        ).replace('{name}', name || '')}
+                        description={t(
+                          'selfHost.applicationDetails.header.actions.delete.dialog.description'
+                        ).replace('{name}', name || '')}
+                        onConfirm={handleDelete}
+                        open={deleteDialogOpen}
+                        onOpenChange={setDeleteDialogOpen}
+                        isDeleting={isDeleting}
+                        variant="destructive"
+                        icon={Trash2}
+                      />
+                    </>
+                  </AnyPermissionGuard>
+                </div>
+                {domain && (
+                  <a
+                    href={`https://${domain}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    title={`Open ${domain}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 mt-2">
