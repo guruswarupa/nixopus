@@ -282,16 +282,16 @@ function DateFilter({
   value: string;
   onChange: (v: string) => void;
 }) {
+  // Convert datetime-local format (YYYY-MM-DDTHH:mm) to/from stored value
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange(e.target.value);
+  };
+
   return (
     <div className="flex items-center gap-2">
       <Calendar className="h-4 w-4 text-muted-foreground" />
       <span className="text-sm text-muted-foreground">{label}</span>
-      <Input
-        type="date"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-40 h-9"
-      />
+      <Input type="datetime-local" value={value} onChange={handleChange} className="w-48 h-9" />
     </div>
   );
 }
@@ -481,7 +481,7 @@ function LogsList({ logs, isLoading, isLogExpanded, onToggle, isDense }: LogsLis
   }
 
   return (
-    <div className="max-h-[600px] overflow-y-auto overflow-x-hidden">
+    <div className="overflow-x-hidden">
       {logs.map((log) => (
         <LogItem
           key={log.id}

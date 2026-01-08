@@ -60,12 +60,85 @@ export function useDeploymentLogsViewer({
 
   const { message } = useApplicationWebSocket(id);
 
+  // Convert datetime-local format (YYYY-MM-DDTHH:mm) to RFC3339 format for API
+  const convertToRFC3339 = (
+    datetimeLocal: string,
+    isEndDate: boolean = false
+  ): string | undefined => {
+    if (!datetimeLocal) return undefined;
+
+    try {
+      // If it's in datetime-local format (has T), convert it
+      if (datetimeLocal.includes('T')) {
+        const parts = datetimeLocal.split('T');
+        if (parts.length !== 2) return undefined;
+
+        // Ensure we have seconds if not provided
+        const timePart = parts[1];
+        let timeWithSeconds = timePart;
+
+        // Count colons to determine format
+        const colonCount = (timePart.match(/:/g) || []).length;
+        if (colonCount === 1) {
+          // Format: HH:mm, add seconds
+          // For end dates, set to end of minute (59.999), for start dates set to beginning (00)
+          if (isEndDate) {
+            timeWithSeconds = `${timePart}:59.999`;
+          } else {
+            timeWithSeconds = `${timePart}:00`;
+          }
+        } else if (colonCount === 2 && !timePart.includes('.')) {
+          // Format: HH:mm:ss, already has seconds
+          // For end dates, add milliseconds if not present
+          if (isEndDate && !timePart.includes('.')) {
+            timeWithSeconds = `${timePart}.999`;
+          } else {
+            timeWithSeconds = timePart;
+          }
+        }
+
+        // Combine date and time, then convert to ISO string (RFC3339)
+        const dateTimeString = `${parts[0]}T${timeWithSeconds}`;
+        const date = new Date(dateTimeString);
+
+        // Validate the date
+        if (isNaN(date.getTime())) return undefined;
+
+        return date.toISOString();
+      }
+
+      // If it's just a date (YYYY-MM-DD)
+      // For start dates, treat as start of day, for end dates treat as end of day
+      if (isEndDate) {
+        const date = new Date(datetimeLocal + 'T23:59:59.999');
+        if (isNaN(date.getTime())) return undefined;
+        return date.toISOString();
+      } else {
+        const date = new Date(datetimeLocal + 'T00:00:00');
+        if (isNaN(date.getTime())) return undefined;
+        return date.toISOString();
+      }
+    } catch {
+      return undefined;
+    }
+  };
+
+  const startTime = convertToRFC3339(filters.startDate, false);
+  const endTime = convertToRFC3339(filters.endDate, true);
+
   const {
     data: deploymentLogs,
     isLoading: isLoadingDeployment,
     refetch: refetchDeploymentLogs
   } = useGetDeploymentLogsQuery(
-    { id, page: currentPage, page_size: pageSize, search_term: searchTerm },
+    {
+      id,
+      page: currentPage,
+      page_size: pageSize,
+      search_term: searchTerm,
+      start_time: startTime,
+      end_time: endTime
+    },
     { skip: !isDeployment || !id }
   );
 
@@ -74,7 +147,14 @@ export function useDeploymentLogsViewer({
     isLoading: isLoadingApplication,
     refetch: refetchApplicationLogs
   } = useGetApplicationLogsQuery(
-    { id, page: currentPage, page_size: pageSize, search_term: searchTerm },
+    {
+      id,
+      page: currentPage,
+      page_size: pageSize,
+      search_term: searchTerm,
+      start_time: startTime,
+      end_time: endTime
+    },
     { skip: isDeployment || !id }
   );
 
@@ -85,6 +165,12 @@ export function useDeploymentLogsViewer({
     if (!message) return;
     handleWebSocketMessage(message, setAllLogs, isDeployment ? id : undefined);
   }, [message, isDeployment, id]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+    setAllLogs([]);
+  }, [filters.startDate, filters.endDate, filters.level]);
 
   useEffect(() => {
     if (logsResponse?.logs) {
@@ -224,9 +310,65 @@ function formatLogsForDisplay(
 
 function isWithinDateRange(timestamp: string, startDate: string, endDate: string): boolean {
   if (!startDate && !endDate) return true;
+
   const logDate = new Date(timestamp);
-  if (startDate && logDate < new Date(startDate)) return false;
-  if (endDate && logDate > new Date(endDate + 'T23:59:59')) return false;
+  if (isNaN(logDate.getTime())) return false;
+
+  // Handle datetime-local format (YYYY-MM-DDTHH:mm) or date format (YYYY-MM-DD)
+  if (startDate) {
+    let startDateTime: Date;
+    if (startDate.includes('T')) {
+      // datetime-local format: YYYY-MM-DDTHH:mm
+      // Need to ensure we have seconds for proper comparison
+      const timePart = startDate.split('T')[1];
+      const colonCount = (timePart.match(/:/g) || []).length;
+      let fullDateTime = startDate;
+
+      if (colonCount === 1) {
+        // Format: HH:mm, add seconds
+        fullDateTime = `${startDate}:00`;
+      }
+
+      startDateTime = new Date(fullDateTime);
+    } else {
+      // Just date: YYYY-MM-DD, treat as start of day
+      startDateTime = new Date(startDate + 'T00:00:00');
+    }
+
+    if (isNaN(startDateTime.getTime())) return false;
+
+    // Compare at second precision
+    if (logDate < startDateTime) return false;
+  }
+
+  if (endDate) {
+    let endDateTime: Date;
+    if (endDate.includes('T')) {
+      // datetime-local format: YYYY-MM-DDTHH:mm
+      const timePart = endDate.split('T')[1];
+      const colonCount = (timePart.match(/:/g) || []).length;
+      let fullDateTime = endDate;
+
+      if (colonCount === 1) {
+        // Format: HH:mm, add seconds and set to end of that minute
+        fullDateTime = `${endDate}:59`;
+      } else {
+        // Already has seconds, ensure we include up to the end of that second
+        fullDateTime = endDate;
+      }
+
+      endDateTime = new Date(fullDateTime);
+    } else {
+      // Just date: YYYY-MM-DD, treat as end of day
+      endDateTime = new Date(endDate + 'T23:59:59.999');
+    }
+
+    if (isNaN(endDateTime.getTime())) return false;
+
+    // Compare at second precision
+    if (logDate > endDateTime) return false;
+  }
+
   return true;
 }
 
@@ -253,6 +395,7 @@ function formatTimestamp(timestamp: string): string {
   return date.toLocaleString('en-US', {
     month: 'short',
     day: '2-digit',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
