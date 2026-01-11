@@ -59,7 +59,9 @@ export default function ContainersPage() {
     setSearchInput,
     sortBy,
     sortOrder,
-    handleSort
+    handleSort,
+    statusFilter,
+    setStatusFilter
   } = useContainerList();
 
   if (!initialized && isLoading) {
@@ -137,6 +139,17 @@ export default function ContainersPage() {
               className="pl-10"
             />
           </div>
+          <SelectWrapper
+            value={statusFilter ? statusFilter : 'all'}
+            onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}
+            options={[
+              { value: 'all', label: 'All Status' },
+              { value: 'running', label: 'Running' },
+              { value: 'exited', label: 'Exited' }
+            ]}
+            placeholder="Filter by status"
+            className="w-[160px]"
+          />
           <div className="flex items-center gap-2 ml-auto">
             <SelectWrapper
               value={String(pageSize)}

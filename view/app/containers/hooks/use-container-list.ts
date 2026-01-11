@@ -23,9 +23,17 @@ function useContainerList() {
   const [searchInput, setSearchInput] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'status'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [statusFilter, setStatusFilter] = useState<string>('');
 
   const { data, isLoading, refetch, isFetching } = useGetContainersQuery(
-    { page, page_size: pageSize, search, sort_by: sortBy, sort_order: sortOrder },
+    {
+      page,
+      page_size: pageSize,
+      search,
+      sort_by: sortBy,
+      sort_order: sortOrder,
+      status: statusFilter || undefined
+    },
     { refetchOnMountOrArgChange: true }
   );
   const [startContainer] = useStartContainerMutation();
@@ -57,6 +65,11 @@ function useContainerList() {
     }, 300);
     return () => clearTimeout(handle);
   }, [searchInput]);
+
+  // Reset page when status filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
 
   // Keep previous data to avoid page flash on param changes
   const [lastData, setLastData] = useState<
@@ -189,7 +202,9 @@ function useContainerList() {
     setSearchInput,
     sortBy,
     sortOrder,
-    handleSort
+    handleSort,
+    statusFilter,
+    setStatusFilter
   };
 }
 

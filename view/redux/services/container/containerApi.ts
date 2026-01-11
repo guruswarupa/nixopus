@@ -44,6 +44,7 @@ export type ContainerListParams = {
   search?: string;
   sort_by?: 'name' | 'status';
   sort_order?: 'asc' | 'desc';
+  status?: string;
 };
 
 export const containerApi = createApi({
@@ -55,10 +56,10 @@ export const containerApi = createApi({
       { containers: Container[]; total_count: number; page: number; page_size: number },
       ContainerListParams
     >({
-      query: ({ page, page_size, search, sort_by, sort_order }) => ({
+      query: ({ page, page_size, search, sort_by, sort_order, status }) => ({
         url: CONTAINERURLS.GET_CONTAINERS,
         method: 'GET',
-        params: { page, page_size, search, sort_by, sort_order }
+        params: { page, page_size, search, sort_by, sort_order, status }
       }),
       providesTags: [{ type: 'Container', id: 'LIST' }],
       transformResponse: (response: {
