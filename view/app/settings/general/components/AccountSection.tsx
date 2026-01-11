@@ -105,7 +105,7 @@ function AccountSection({
               <User size={16} />
               {t('settings.account.username.label')}
             </Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 id="username"
                 value={username}
@@ -114,11 +114,13 @@ function AccountSection({
                   setUsernameError('');
                 }}
                 placeholder={t('settings.account.username.placeholder')}
+                className="flex-1"
               />
               <RBACGuard resource="user" action="update">
                 <Button
                   onClick={handleUsernameChange}
                   disabled={isLoading || username === user?.username}
+                  className="w-full sm:w-auto"
                 >
                   {t('settings.account.username.update')}
                 </Button>
@@ -199,7 +201,7 @@ function AccountSection({
           </TypographyMuted>
         </div>
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
             <TypographyMuted className="text-sm">{t('settings.preferences.font')}</TypographyMuted>
             <RBACGuard resource="user" action="update">
               <SelectWrapper
@@ -221,7 +223,7 @@ function AccountSection({
                 ]}
                 placeholder={t('settings.preferences.font')}
                 disabled={isUpdatingFont}
-                className="w-[180px]"
+                className="w-full sm:w-[180px]"
               />
             </RBACGuard>
           </div>
@@ -237,7 +239,7 @@ function AccountSection({
             {t('settings.preferences.language.description')}
           </TypographyMuted>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <TypographyMuted className="text-sm">
             {t('settings.preferences.language.select')}
           </TypographyMuted>
@@ -251,8 +253,8 @@ function AccountSection({
         </div>
       </div>
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-2">
+        <div className="flex items-start sm:items-center justify-between gap-3">
+          <div className="flex flex-col gap-2 flex-1">
             <TypographySmall className="text-sm font-medium">
               {t('settings.preferences.autoUpdate.title')}
             </TypographySmall>

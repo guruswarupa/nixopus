@@ -160,7 +160,7 @@ export default function FeatureFlagsSettings() {
             </Badge>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto space-y-6">
+        <div className="flex-1 overflow-y-auto no-scrollbar space-y-6">
           <div className="flex items-center gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />

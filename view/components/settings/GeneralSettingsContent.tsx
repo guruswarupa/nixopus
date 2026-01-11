@@ -17,7 +17,7 @@ export function GeneralSettingsContent() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="space-y-6 flex-1 overflow-y-auto">
+      <div className="space-y-6 flex-1 overflow-y-auto no-scrollbar">
         <h2 className="text-2xl font-semibold">{t('settings.title')}</h2>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <AvatarSection onImageChange={settings.onImageChange} user={settings.user!} />
