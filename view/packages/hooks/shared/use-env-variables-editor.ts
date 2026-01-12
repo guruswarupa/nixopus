@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, KeyboardEvent, ClipboardEvent } from 'react';
+import { useState, useEffect, useRef, useCallback, KeyboardEvent, ClipboardEvent } from 'react';
 import { parseEnvText, isMultiLineEnvPaste } from '@/packages/utils/parse-env';
 import { useTranslation } from '@/packages/hooks/shared/use-translation';
 
