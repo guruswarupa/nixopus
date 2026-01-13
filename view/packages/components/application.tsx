@@ -1,13 +1,24 @@
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Copy, Trash2 } from 'lucide-react';
 import { Application } from '@/redux/types/applications';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useApplicationItem } from '@/packages/hooks/applications/use_application_item';
+import { Button } from '@/components/ui/button';
+import { DeleteDialog } from '@/components/ui/delete-dialog';
+import { AnyPermissionGuard } from '@/packages/components/rbac';
+import { DuplicateProjectDialog } from '@/packages/components/application-details';
+import { useDeleteApplicationMutation } from '@/redux/services/deploy/applicationsApi';
+import { toast } from 'sonner';
+import { useTranslation } from '@/packages/hooks/shared/use-translation';
 
 function AppItem(application: Application) {
+  const { t } = useTranslation();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteApplication, { isLoading: isDeleting }] = useDeleteApplicationMutation();
+
   const {
     name,
     domain,
@@ -23,25 +34,11 @@ function AppItem(application: Application) {
 
   const handleDelete = async () => {
     try {
-      await deleteApplication({ id }).unwrap();
+      await deleteApplication({ id: application.id }).unwrap();
       toast.success(t('selfHost.applicationDetails.header.actions.delete.success'));
     } catch (error) {
       toast.error(t('selfHost.applicationDetails.header.actions.delete.error'));
     }
-  };
-
-  const application: Application = {
-    name,
-    domain,
-    environment,
-    updated_at,
-    build_pack,
-    branch,
-    id,
-    status,
-    deployments,
-    labels,
-    ...rest
   };
 
   return (

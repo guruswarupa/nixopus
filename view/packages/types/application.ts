@@ -1,3 +1,4 @@
+import React from 'react';
 import { ApplicationDeployment, Status, Application } from '@/redux/types/applications';
 import { DashboardItem } from '@/packages/types/layout';
 
@@ -62,6 +63,7 @@ export interface ApplicationLogsProps {
 
 export interface DuplicateProjectDialogProps {
   application: Application;
+  trigger?: React.ReactNode;
 }
 
 export interface UseMonitoringReturn {

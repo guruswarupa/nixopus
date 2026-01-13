@@ -120,18 +120,23 @@ export const DeploymentStatusChart = ({
   );
 };
 
-export function DuplicateProjectDialog({ application }: DuplicateProjectDialogProps) {
+export function DuplicateProjectDialog({
+  application,
+  trigger: customTrigger
+}: DuplicateProjectDialogProps) {
   const {
     open,
     setOpen,
     formFields,
     dialogActions,
-    trigger,
+    trigger: defaultTrigger,
     dialogTitle,
     dialogDescription,
     isLoading,
     isDisabled
   } = useDuplicateProject({ application });
+
+  const trigger = customTrigger || defaultTrigger;
 
   if (isDisabled) {
     return trigger;
