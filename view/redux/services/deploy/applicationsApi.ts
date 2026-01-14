@@ -210,15 +210,21 @@ export const deployApi = createApi({
         page: number;
         page_size: number;
         search_term?: string;
+        start_time?: string;
+        end_time?: string;
+        level?: string;
       }
     >({
-      query: ({ id, page, page_size, search_term }) => ({
+      query: ({ id, page, page_size, search_term, start_time, end_time, level }) => ({
         url: DEPLOY.GET_DEPLOYMENT_LOGS.replace('{deployment_id}', id),
         method: 'GET',
         params: {
           page,
           page_size,
-          search_term
+          search_term,
+          ...(start_time && { start_time }),
+          ...(end_time && { end_time }),
+          ...(level && { level })
         }
       }),
       transformResponse: (response: { data: ApplicationLogsResponse }) => response.data,

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { TimePicker12hr } from './time-picker-12hr';
 import {
   useDeploymentLogsViewer,
   FormattedLogEntry,
@@ -48,12 +49,14 @@ export function DeploymentLogsTable({ id, isDeployment = false, title }: Deploym
     showLoadMore,
     levelOptions,
     dateFilterOptions,
+    timeFilterOptions,
     tableHeaderColumns,
     loadingSkeletons,
     actionButtons,
     handleLoadMore,
     handleLevelChange,
-    handleDateFilterChange
+    handleDateFilterChange,
+    handleTimeFilterChange
   } = useDeploymentLogsTable({
     id,
     isDeployment,
@@ -104,6 +107,16 @@ export function DeploymentLogsTable({ id, isDeployment = false, title }: Deploym
                   value={filters[option.key]}
                   onChange={(e) => handleDateFilterChange(option.key, e.target.value)}
                   className="w-40 h-9"
+                />
+              </div>
+            ))}
+            {timeFilterOptions.map((option) => (
+              <div key={option.key} className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">{option.label}</span>
+                <TimePicker12hr
+                  value={filters[option.key]}
+                  onChange={(value) => handleTimeFilterChange(option.key, value)}
+                  className="w-auto"
                 />
               </div>
             ))}

@@ -29,6 +29,8 @@ export interface FormattedLogEntry {
 export interface LogFilters {
   startDate: string;
   endDate: string;
+  startTime: string;
+  endTime: string;
   level: LogLevel | 'all';
 }
 
@@ -51,6 +53,8 @@ export function useDeploymentLogsViewer({
   const [filters, setFilters] = useState<LogFilters>({
     startDate: '',
     endDate: '',
+    startTime: '',
+    endTime: '',
     level: 'all'
   });
 
@@ -60,12 +64,36 @@ export function useDeploymentLogsViewer({
 
   const { message } = useApplicationWebSocket(id);
 
+  const buildDateTime = (
+    date: string,
+    time: string,
+    isEndTime: boolean = false
+  ): string | undefined => {
+    if (!date) return undefined;
+    // If no time specified, use start of day for startDate, end of day for endDate
+    const timeValue = time || (isEndTime ? '23:59:59' : '00:00:00');
+    // Combine date and time into RFC3339 format
+    const dateTime = `${date}T${timeValue}`;
+    return new Date(dateTime).toISOString();
+  };
+
+  const startTime = buildDateTime(filters.startDate, filters.startTime, false);
+  const endTime = buildDateTime(filters.endDate, filters.endTime, true);
+
   const {
     data: deploymentLogs,
     isLoading: isLoadingDeployment,
     refetch: refetchDeploymentLogs
   } = useGetDeploymentLogsQuery(
-    { id, page: currentPage, page_size: pageSize, search_term: searchTerm },
+    {
+      id,
+      page: currentPage,
+      page_size: pageSize,
+      search_term: searchTerm,
+      start_time: startTime,
+      end_time: endTime,
+      level: filters.level !== 'all' ? filters.level : undefined
+    },
     { skip: !isDeployment || !id }
   );
 
@@ -74,7 +102,15 @@ export function useDeploymentLogsViewer({
     isLoading: isLoadingApplication,
     refetch: refetchApplicationLogs
   } = useGetApplicationLogsQuery(
-    { id, page: currentPage, page_size: pageSize, search_term: searchTerm },
+    {
+      id,
+      page: currentPage,
+      page_size: pageSize,
+      search_term: searchTerm,
+      start_time: startTime,
+      end_time: endTime,
+      level: filters.level !== 'all' ? filters.level : undefined
+    },
     { skip: isDeployment || !id }
   );
 
@@ -119,7 +155,7 @@ export function useDeploymentLogsViewer({
   }, []);
 
   const clearFilters = useCallback(() => {
-    setFilters({ startDate: '', endDate: '', level: 'all' });
+    setFilters({ startDate: '', endDate: '', startTime: '', endTime: '', level: 'all' });
     setSearchTerm('');
   }, []);
 
@@ -206,7 +242,13 @@ function formatLogsForDisplay(
 
   const filtered = sorted.filter((log) => {
     const matchesSearch = !searchTerm || log.log.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDateRange = isWithinDateRange(log.created_at, filters.startDate, filters.endDate);
+    const matchesDateRange = isWithinDateRange(
+      log.created_at,
+      filters.startDate,
+      filters.endDate,
+      filters.startTime,
+      filters.endTime
+    );
     const level = detectLogLevel(log.log);
     const matchesLevel = filters.level === 'all' || level === filters.level;
     return matchesSearch && matchesDateRange && matchesLevel;
@@ -222,11 +264,26 @@ function formatLogsForDisplay(
   }));
 }
 
-function isWithinDateRange(timestamp: string, startDate: string, endDate: string): boolean {
+function isWithinDateRange(
+  timestamp: string,
+  startDate: string,
+  endDate: string,
+  startTime: string,
+  endTime: string
+): boolean {
   if (!startDate && !endDate) return true;
   const logDate = new Date(timestamp);
-  if (startDate && logDate < new Date(startDate)) return false;
-  if (endDate && logDate > new Date(endDate + 'T23:59:59')) return false;
+
+  if (startDate) {
+    const startDateTime = startTime ? `${startDate}T${startTime}` : `${startDate}T00:00:00`;
+    if (logDate < new Date(startDateTime)) return false;
+  }
+
+  if (endDate) {
+    const endDateTime = endTime ? `${endDate}T${endTime}` : `${endDate}T23:59:59`;
+    if (logDate > new Date(endDateTime)) return false;
+  }
+
   return true;
 }
 
@@ -253,6 +310,7 @@ function formatTimestamp(timestamp: string): string {
   return date.toLocaleString('en-US', {
     month: 'short',
     day: '2-digit',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',

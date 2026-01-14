@@ -43,8 +43,13 @@ const levelOptions: { value: LogLevel | 'all'; label: string }[] = [
 ];
 
 const dateFilterOptions = [
-  { key: 'startDate', label: 'From' },
-  { key: 'endDate', label: 'To' }
+  { key: 'startDate', label: 'From Date' },
+  { key: 'endDate', label: 'To Date' }
+] as const;
+
+const timeFilterOptions = [
+  { key: 'startTime', label: 'From Time' },
+  { key: 'endTime', label: 'To Time' }
 ] as const;
 
 const tableHeaderColumns = [
@@ -87,7 +92,13 @@ export function useDeploymentLogsTable({
   );
 
   const hasActiveFilters = useMemo(
-    () => filters.startDate || filters.endDate || filters.level !== 'all' || searchTerm,
+    () =>
+      filters.startDate ||
+      filters.endDate ||
+      filters.startTime ||
+      filters.endTime ||
+      filters.level !== 'all' ||
+      searchTerm,
     [filters, searchTerm]
   );
 
@@ -156,6 +167,13 @@ export function useDeploymentLogsTable({
 
   const handleDateFilterChange = useCallback(
     (key: 'startDate' | 'endDate', value: string) => {
+      setFilters({ ...filters, [key]: value });
+    },
+    [filters, setFilters]
+  );
+
+  const handleTimeFilterChange = useCallback(
+    (key: 'startTime' | 'endTime', value: string) => {
       setFilters({ ...filters, [key]: value });
     },
     [filters, setFilters]
@@ -230,12 +248,14 @@ export function useDeploymentLogsTable({
     handleLoadMore,
     handleLevelChange,
     handleDateFilterChange,
+    handleTimeFilterChange,
     handleDenseToggle,
     hasLogs: logs.length > 0,
     hasActiveFilters,
     showLoadMore,
     levelOptions,
     dateFilterOptions,
+    timeFilterOptions,
     tableHeaderColumns,
     loadingSkeletons,
     actionButtons
