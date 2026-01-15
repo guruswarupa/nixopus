@@ -129,7 +129,10 @@ function AppItem(application: Application) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    title={`Open ${domain}`}
+                    title={t('selfHost.applicationDetails.header.actions.openDomain').replace(
+                      '{domain}',
+                      domain
+                    )}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <ExternalLink className="h-4 w-4" />

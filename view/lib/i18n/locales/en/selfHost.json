@@ -321,7 +321,8 @@
             "error": "Failed to redeploy application",
             "permissionError": "You do not have permission to redeploy applications"
           },
-          "open": "Open application in new tab"
+          "open": "Open application in new tab",
+          "openDomain": "Open {domain}"
         }
       }
     },
