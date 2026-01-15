@@ -13,6 +13,7 @@ import { DuplicateProjectDialog } from '@/packages/components/application-detail
 import { useDeleteApplicationMutation } from '@/redux/services/deploy/applicationsApi';
 import { toast } from 'sonner';
 import { useTranslation } from '@/packages/hooks/shared/use-translation';
+import { DomainDropdown } from '@/packages/components/multi-domains';
 
 function AppItem(application: Application) {
   const { t } = useTranslation();
@@ -22,6 +23,7 @@ function AppItem(application: Application) {
   const {
     name,
     domain,
+    domains,
     currentStatus,
     statusConfig,
     environmentStyles,
@@ -133,13 +135,14 @@ function AppItem(application: Application) {
                     <ExternalLink className="h-4 w-4" />
                   </a>
                 )}
+                <DomainDropdown domains={domains} variant="icon" />
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 mt-2">
-              {domain && (
+              {domains && domains.length > 0 && (
                 <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-0.5 rounded truncate max-w-[180px]">
-                  {domain}
+                  {domains[0].domain}
                 </span>
               )}
               <Badge variant="outline" className={cn('text-xs capitalize', environmentStyles)}>
